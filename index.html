@@ -124,7 +124,7 @@ function renderGrid(img1, img2) {
     canvas.width = (cellW * 2) + gap;
     canvas.height = (cellH * 4) + (gap * 3);
 
-    ctx.fillStyle = "#a0aec0";
+    ctx.fillStyle = "#cbd5e0";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     function createPairCanvas(drawHighlights) {
@@ -145,64 +145,74 @@ function renderGrid(img1, img2) {
 
     // 1. الصف الأول: الدوائر العلوية
     const row1 = createPairCanvas((cx, w, h, g) => {
-        cx.strokeStyle = "red";
+        cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
         
         cx.beginPath();
-        cx.arc(w * 0.62, h * 0.2, 28, 0, 2 * Math.PI);
+        cx.arc(w * 0.62, h * 0.18, 25, 0, 2 * Math.PI);
         cx.stroke();
 
         cx.beginPath();
-        cx.arc(w + g + (w * 0.85), h * 0.2, 28, 0, 2 * Math.PI);
+        cx.arc(w + g + (w * 0.88), h * 0.18, 25, 0, 2 * Math.PI);
         cx.stroke();
     });
 
     // 2. الصف الثاني: مربعات التركيز
     const row2 = createPairCanvas((cx, w, h, g) => {
-        cx.strokeStyle = "red";
+        cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
-        cx.strokeRect(w * 0.35, h * 0.45, w * 0.18, h * 0.38);
-        cx.strokeRect(w + g + (w * 0.12), h * 0.45, w * 0.18, h * 0.38);
+        cx.strokeRect(w * 0.35, h * 0.42, w * 0.18, h * 0.38);
+        cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.38);
     });
 
-    // 3. الصف الثالث: اقتصاص وتكبير جزء الحرف مع إطار
+    // 3. الصف الثالث: اقتصاص وتكبير المقطع المحدد مع سهم توضيحي
     const row3 = createPairCanvas((cx, w, h, g) => {
-        cx.strokeStyle = "red";
+        cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
 
-        // إطار المربع الأول
-        cx.strokeRect(w * 0.35, h * 0.45, w * 0.18, h * 0.38);
-
-        // اقتصاص المقطع وتكبيره بداخل المربع المخصص في المنتصف
+        // إطار المربع الأصلي
         const cropX = w * 0.35;
-        const cropY = h * 0.45;
+        const cropY = h * 0.42;
         const cropW = w * 0.18;
         const cropH = h * 0.38;
+        
+        cx.strokeRect(cropX, cropY, cropW, cropH);
 
-        const zoomX = w * 0.60;
-        const zoomY = h * 0.30;
+        // اقتصاص وتكبير بداخل إطار مكبر مرسوم جانبه
+        const zoomX = w * 0.58;
+        const zoomY = h * 0.22;
         const zoomW = w * 0.28;
-        const zoomH = h * 0.50;
+        const zoomH = h * 0.60;
 
-        // رسم الجزء المكبر
-        cx.drawImage(img1, cropX, cropY, cropW, cropH, zoomX, zoomY, zoomW, zoomH);
+        // خلفية بيضاء وإطار للمكبر
+        cx.fillStyle = "#ffffff";
+        cx.fillRect(zoomX, zoomY, zoomW, zoomH);
+        cx.drawImage(img1, (img1.width * 0.35), (img1.height * 0.42), (img1.width * 0.18), (img1.height * 0.38), zoomX, zoomY, zoomW, zoomH);
         cx.strokeRect(zoomX, zoomY, zoomW, zoomH);
 
-        // إطار التوقيع الثاني
-        cx.strokeRect(w + g + (w * 0.12), h * 0.45, w * 0.18, h * 0.38);
-    });
-
-    // 4. الصف الرابع: أشكال بيضاوية على الامتداد السفلي
-    const row4 = createPairCanvas((cx, w, h, g) => {
-        cx.strokeStyle = "red";
-        cx.lineWidth = 3;
-
+        // رسم سهم إشارة أحمر من المربع إلى التكبير
         cx.beginPath();
-        cx.ellipse(w * 0.48, h * 0.82, w * 0.42, h * 0.12, 0, 0, 2 * Math.PI);
+        cx.moveTo(cropX + cropW, cropY + (cropH / 2));
+        cx.lineTo(zoomX, zoomY + (zoomH / 2));
         cx.stroke();
 
+        // إطار المربع في الصورة الثانية
+        cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.38);
+    });
+
+    // 4. الصف الرابع: الشكل البيضاوي يرتكز على امتداد الخط السفلي
+    const row4 = createPairCanvas((cx, w, h, g) => {
+        cx.strokeStyle = "#e53e3e";
+        cx.lineWidth = 3;
+
+        // الشكل البيضاوي للصورة الأولى
         cx.beginPath();
-        cx.ellipse(w + g + (w * 0.68), h * 0.82, w * 0.28, h * 0.12, 0, 0, 2 * Math.PI);
+        cx.ellipse(w * 0.45, h * 0.72, w * 0.40, h * 0.12, -0.1, 0, 2 * Math.PI);
+        cx.stroke();
+
+        // الشكل البيضاوي للصورة الثانية مع المحاذاة للخط السفلي
+        cx.beginPath();
+        cx.ellipse(w + g + (w * 0.55), h * 0.72, w * 0.38, h * 0.12, 0.1, 0, 2 * Math.PI);
         cx.stroke();
     });
 
