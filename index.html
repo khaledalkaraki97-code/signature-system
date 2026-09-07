@@ -118,13 +118,13 @@ function renderGrid(img1, img2) {
     const ctx = canvas.getContext('2d');
 
     const cellW = 500;
-    const cellH = 200;
-    const gap = 8;
+    const cellH = 250;
+    const gap = 6;
 
     canvas.width = (cellW * 2) + gap;
     canvas.height = (cellH * 4) + (gap * 3);
 
-    ctx.fillStyle = "#cbd5e0";
+    ctx.fillStyle = "#a0aec0";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     function createPairCanvas(drawHighlights) {
@@ -143,69 +143,75 @@ function renderGrid(img1, img2) {
         return c;
     }
 
-    // 1. الصف الأول: دوائر حمراء على الأجزاء المحددة
+    // 1. الصف الأول: الدوائر العلوية
     const row1 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "red";
         cx.lineWidth = 3;
         
         cx.beginPath();
-        cx.arc(w * 0.65, h * 0.25, 30, 0, 2 * Math.PI);
+        cx.arc(w * 0.62, h * 0.2, 28, 0, 2 * Math.PI);
         cx.stroke();
 
         cx.beginPath();
-        cx.arc(w + g + (w * 0.85), h * 0.25, 30, 0, 2 * Math.PI);
+        cx.arc(w + g + (w * 0.85), h * 0.2, 28, 0, 2 * Math.PI);
         cx.stroke();
     });
 
-    // 2. الصف الثاني: مربعات حمراء
+    // 2. الصف الثاني: مربعات التركيز
     const row2 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "red";
         cx.lineWidth = 3;
-        cx.strokeRect(w * 0.38, h * 0.45, w * 0.18, h * 0.4);
-        cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.4);
+        cx.strokeRect(w * 0.35, h * 0.45, w * 0.18, h * 0.38);
+        cx.strokeRect(w + g + (w * 0.12), h * 0.45, w * 0.18, h * 0.38);
     });
 
-    // 3. الصف الثالث: اقتصاص وتكبير المقطع مع سهم
+    // 3. الصف الثالث: اقتصاص وتكبير جزء الحرف مع إطار
     const row3 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "red";
         cx.lineWidth = 3;
 
-        // إطار المقطع
-        cx.strokeRect(w * 0.38, h * 0.45, w * 0.18, h * 0.4);
-        cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.4);
+        // إطار المربع الأول
+        cx.strokeRect(w * 0.35, h * 0.45, w * 0.18, h * 0.38);
 
-        // اقتصاص وتكبير
-        cx.drawImage(img1, w * 0.38, h * 0.45, w * 0.18, h * 0.4, w * 0.62, h * 0.2, 120, 80);
-        cx.strokeRect(w * 0.62, h * 0.2, 120, 80);
+        // اقتصاص المقطع وتكبيره بداخل المربع المخصص في المنتصف
+        const cropX = w * 0.35;
+        const cropY = h * 0.45;
+        const cropW = w * 0.18;
+        const cropH = h * 0.38;
 
-        // رسم سهم توضيحي بسيط
-        cx.beginPath();
-        cx.moveTo(w * 0.52, h * 0.45);
-        cx.lineTo(w * 0.62, h * 0.35);
-        cx.stroke();
+        const zoomX = w * 0.60;
+        const zoomY = h * 0.30;
+        const zoomW = w * 0.28;
+        const zoomH = h * 0.50;
+
+        // رسم الجزء المكبر
+        cx.drawImage(img1, cropX, cropY, cropW, cropH, zoomX, zoomY, zoomW, zoomH);
+        cx.strokeRect(zoomX, zoomY, zoomW, zoomH);
+
+        // إطار التوقيع الثاني
+        cx.strokeRect(w + g + (w * 0.12), h * 0.45, w * 0.18, h * 0.38);
     });
 
-    // 4. الصف الرابع: شكل بيضاوي أحمر
+    // 4. الصف الرابع: أشكال بيضاوية على الامتداد السفلي
     const row4 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "red";
         cx.lineWidth = 3;
 
         cx.beginPath();
-        cx.ellipse(w * 0.5, h * 0.75, w * 0.4, h * 0.15, 0, 0, 2 * Math.PI);
+        cx.ellipse(w * 0.48, h * 0.82, w * 0.42, h * 0.12, 0, 0, 2 * Math.PI);
         cx.stroke();
 
         cx.beginPath();
-        cx.ellipse(w + g + (w * 0.6), h * 0.68, w * 0.3, h * 0.15, -0.2, 0, 2 * Math.PI);
+        cx.ellipse(w + g + (w * 0.68), h * 0.82, w * 0.28, h * 0.12, 0, 0, 2 * Math.PI);
         cx.stroke();
     });
 
-    // دمج الصفوف الأربعة في الكانفاس الرئيسي
+    // دمج الصفوف
     const rows = [row1, row2, row3, row4];
     rows.forEach((r, idx) => {
         ctx.drawImage(r, 0, idx * (cellH + gap));
     });
 
-    // عرض الصورة النهائية
     const resultImg = document.getElementById('outputImage');
     resultImg.src = canvas.toDataURL('image/png');
     document.getElementById('resultArea').style.display = 'block';
