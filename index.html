@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منظومة المقارنة التفصيلية للتواقيع الجنائية1</title>
+    <title>منظومة المقارنة التفصيلية للتواقيع الجنائية</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -149,11 +149,11 @@ function renderGrid(img1, img2) {
         cx.lineWidth = 3;
         
         cx.beginPath();
-        cx.arc(w * 0.62, h * 0.18, 25, 0, 2 * Math.PI);
+        cx.arc(w * 0.61, h * 0.16, 22, 0, 2 * Math.PI);
         cx.stroke();
 
         cx.beginPath();
-        cx.arc(w + g + (w * 0.88), h * 0.18, 25, 0, 2 * Math.PI);
+        cx.arc(w + g + (w * 0.88), h * 0.16, 22, 0, 2 * Math.PI);
         cx.stroke();
     });
 
@@ -165,34 +165,42 @@ function renderGrid(img1, img2) {
         cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.38);
     });
 
-    // 3. الصف الثالث: اقتصاص وتكبير المقطع المحدد مع سهم توضيحي
+    // 3. الصف الثالث: اقتصاص وتكبير فعلي مضاعف
     const row3 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
 
-        // إطار المربع الأصلي
-        const cropX = w * 0.35;
-        const cropY = h * 0.42;
-        const cropW = w * 0.18;
-        const cropH = h * 0.38;
-        
-        cx.strokeRect(cropX, cropY, cropW, cropH);
+        // رسم المربع الأحادي المصدر
+        const srcX = w * 0.35;
+        const srcY = h * 0.42;
+        const srcW = w * 0.18;
+        const srcH = h * 0.38;
+        cx.strokeRect(srcX, srcY, srcW, srcH);
 
-        // اقتصاص وتكبير بداخل إطار مكبر مرسوم جانبه
+        // إحداثيات نافذة التكبير المكبرة x2.2
+        const zoomW = srcW * 2.2;
+        const zoomH = srcH * 2.2;
         const zoomX = w * 0.58;
-        const zoomY = h * 0.22;
-        const zoomW = w * 0.28;
-        const zoomH = h * 0.60;
+        const zoomY = h * 0.12;
 
-        // خلفية بيضاء وإطار للمكبر
+        // خلفية بيضاء للنافذة المكبرة
         cx.fillStyle = "#ffffff";
         cx.fillRect(zoomX, zoomY, zoomW, zoomH);
-        cx.drawImage(img1, (img1.width * 0.35), (img1.height * 0.42), (img1.width * 0.18), (img1.height * 0.38), zoomX, zoomY, zoomW, zoomH);
+        
+        // حساب أبعاد الصورة الأصلية لتنفيذ التكبير بدقة
+        const scaleX = img1.width / w;
+        const scaleY = img1.height / h;
+
+        cx.drawImage(
+            img1, 
+            srcX * scaleX, srcY * scaleY, srcW * scaleX, srcH * scaleY, 
+            zoomX, zoomY, zoomW, zoomH
+        );
         cx.strokeRect(zoomX, zoomY, zoomW, zoomH);
 
-        // رسم سهم إشارة أحمر من المربع إلى التكبير
+        // سهم التوصيل من المربع إلى النافذة المكبرة
         cx.beginPath();
-        cx.moveTo(cropX + cropW, cropY + (cropH / 2));
+        cx.moveTo(srcX + srcW, srcY + (srcH / 2));
         cx.lineTo(zoomX, zoomY + (zoomH / 2));
         cx.stroke();
 
@@ -200,19 +208,19 @@ function renderGrid(img1, img2) {
         cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.38);
     });
 
-    // 4. الصف الرابع: الشكل البيضاوي يرتكز على امتداد الخط السفلي
+    // 4. الصف الرابع: الشكل البيضاوي مع محاذاة الخطوط السفلى
     const row4 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
 
-        // الشكل البيضاوي للصورة الأولى
+        // البيضاوي للصورة اليسرى (يرتكز على الامتداد السفلي)
         cx.beginPath();
-        cx.ellipse(w * 0.45, h * 0.72, w * 0.40, h * 0.12, -0.1, 0, 2 * Math.PI);
+        cx.ellipse(w * 0.45, h * 0.88, w * 0.40, h * 0.08, -0.05, 0, 2 * Math.PI);
         cx.stroke();
 
-        // الشكل البيضاوي للصورة الثانية مع المحاذاة للخط السفلي
+        // البيضاوي للصورة اليمنى (يرتكز على التقاطع السفلي)
         cx.beginPath();
-        cx.ellipse(w + g + (w * 0.55), h * 0.72, w * 0.38, h * 0.12, 0.1, 0, 2 * Math.PI);
+        cx.ellipse(w + g + (w * 0.52), h * 0.52, w * 0.35, h * 0.18, 0.25, 0, 2 * Math.PI);
         cx.stroke();
     });
 
