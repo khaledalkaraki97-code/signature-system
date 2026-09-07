@@ -58,6 +58,22 @@
             border-radius: 8px;
             margin-top: 15px;
         }
+        .slider-control {
+            margin: 20px auto;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 8px;
+            max-width: 600px;
+        }
+        .slider-control label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .slider-control input[type="range"] {
+            width: 80%;
+            cursor: pointer;
+        }
         .legend {
             display: flex;
             justify-content: center;
@@ -89,12 +105,18 @@
 
     <div class="result-area" id="resultArea" style="display:none;">
         <h3>🔵🔴 خريطة التراكب والمطابقة البصرية (Overlay)</h3>
-        <p>تم عزل الخلفية وتلوين التوقيعين لإظهار الفروقات الاستنتاجية:</p>
+        
+        <div class="slider-control">
+            <label for="opacitySlider">🎛️ نسبة شفافية التوقيع المشتبه به (الأحمر): <span id="opacityVal">70%</span></label>
+            <input type="range" id="opacitySlider" min="0" max="100" value="70" oninput="updateOverlayOpacity()">
+        </div>
+
         <div class="legend">
             <div class="legend-item"><div class="color-box" style="background:#0055ff;"></div> التوقيع الأصلي</div>
             <div class="legend-item"><div class="color-box" style="background:#ff0044;"></div> التوقيع المشتبه به</div>
             <div class="legend-item"><div class="color-box" style="background:#8000aa;"></div> مناطق التطابق المباشر</div>
         </div>
+        
         <img id="overlayOutput" class="output-img" alt="خريطة التراكب">
 
         <h3 style="margin-top: 40px;">📋 جدول المقارنة التفصيلي</h3>
@@ -106,6 +128,9 @@
 <canvas id="mainCanvas"></canvas>
 
 <script>
+let globalImg1 = null;
+let globalImg2 = null;
+
 function processSignatures() {
     const origInput = document.getElementById('origInput').files[0];
     const suspInput = document.getElementById('suspInput').files[0];
@@ -115,28 +140,61 @@ function processSignatures() {
         return;
     }
 
-    const img1 = new Image();
-    const img2 = new Image();
+    globalImg1 = new Image();
+    globalImg2 = new Image();
 
-    img1.src = URL.createObjectURL(origInput);
-    img2.src = URL.createObjectURL(suspInput);
+    globalImg1.src = URL.createObjectURL(origInput);
+    globalImg2.src = URL.createObjectURL(suspInput);
 
     let loaded = 0;
     const onLoad = () => {
         loaded++;
         if (loaded === 2) {
-            generateOverlay(img1, img2);
-            renderGrid(img1, img2);
+            generateOverlay();
+            renderGrid(globalImg1, globalImg2);
             document.getElementById('resultArea').style.display = 'block';
         }
     };
 
-    img1.onload = onLoad;
-    img2.onload = onLoad;
+    globalImg1.onload = onLoad;
+    globalImg2.onload = onLoad;
 }
 
-// دالة فصل الخلفية وتراكب التوقيعين بلونين مختلفين
-function generateOverlay(img1, img2) {
+function updateOverlayOpacity() {
+    const val = document.getElementById('opacitySlider').value;
+    document.getElementById('opacityVal').innerText = val + '%';
+    if (globalImg1 && globalImg2) {
+        generateOverlay();
+    }
+}
+
+// دالة عزل الحبر عن خلفية الورقة المتدرجة
+function getInkMask(ctx, img, w, h) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    // 1. حساب متوسط السطوع لكامل الصورة لتحديد عتبة متكيفة
+    let totalLum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+        totalLum += (data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114);
+    }
+    const avgLum = totalLum / (w * h);
+    
+    // العتبة الذكية: البكسل يعتبر حبر إذا كان أغمق بشكل ملحوظ من متوسط الورقة
+    const threshold = avgLum * 0.72; 
+
+    const mask = new Uint8Array(w * h);
+    for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+        const lum = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+        mask[j] = lum < threshold ? 1 : 0;
+    }
+    return mask;
+}
+
+function generateOverlay() {
     const canvas = document.getElementById('workCanvas');
     const ctx = canvas.getContext('2d');
     const w = 700;
@@ -145,52 +203,43 @@ function generateOverlay(img1, img2) {
     canvas.width = w;
     canvas.height = h;
 
-    // 1. معالجة وتفريغ التوقيع الأول (الأزرق)
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(img1, 0, 0, w, h);
-    const imgData1 = ctx.getImageData(0, 0, w, h);
+    const opacityFactor = parseFloat(document.getElementById('opacitySlider').value) / 100;
 
-    // 2. معالجة وتفريغ التوقيع الثاني (الأحمر)
-    ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(img2, 0, 0, w, h);
-    const imgData2 = ctx.getImageData(0, 0, w, h);
+    // استخراج مصفوفة الحبر العازلة للصورة الأولى والثانية
+    const mask1 = getInkMask(ctx, globalImg1, w, h);
+    const mask2 = getInkMask(ctx, globalImg2, w, h);
 
-    // إنشاء صورة التراكب الجديدة
     const overlayData = ctx.createImageData(w, h);
 
-    for (let i = 0; i < imgData1.data.length; i += 4) {
-        // حساب مستوى العتمة/الحبر (Luminance)
-        const lum1 = (imgData1.data[i] + imgData1.data[i+1] + imgData1.data[i+2]) / 3;
-        const lum2 = (imgData2.data[i] + imgData2.data[i+1] + imgData2.data[i+2]) / 3;
-
-        const isInk1 = lum1 < 160; // تحديد بكسلات الحبر للصورة 1
-        const isInk2 = lum2 < 160; // تحديد بكسلات الحبر للصورة 2
+    for (let i = 0; i < mask1.length; i++) {
+        const idx = i * 4;
+        const isInk1 = mask1[i] === 1;
+        const isInk2 = mask2[i] === 1;
 
         if (isInk1 && isInk2) {
-            // منطقة تطابق الحبر (أرجواني/بنفسجي داكن)
-            overlayData.data[i] = 128;     // R
-            overlayData.data[i+1] = 0;     // G
-            overlayData.data[i+2] = 170;   // B
-            overlayData.data[i+3] = 255;   // Alpha
+            // منطقة التطابق (بنفسجي/أرجواني)
+            overlayData.data[idx] = Math.round(130 * opacityFactor);       // R
+            overlayData.data[idx+1] = 0;                                  // G
+            overlayData.data[idx+2] = 220;                                // B
+            overlayData.data[idx+3] = 255;
         } else if (isInk1) {
-            // حبر التوقيع الأصلي فقط (أزرق)
-            overlayData.data[i] = 0;       // R
-            overlayData.data[i+1] = 85;    // G
-            overlayData.data[i+2] = 255;   // B
-            overlayData.data[i+3] = 255;   // Alpha
+            // التوقيع الأصلي (أزرق صريح)
+            overlayData.data[idx] = 0;
+            overlayData.data[idx+1] = 80;
+            overlayData.data[idx+2] = 255;
+            overlayData.data[idx+3] = 255;
         } else if (isInk2) {
-            // حبر التوقيع المشتبه به فقط (أحمر)
-            overlayData.data[i] = 255;     // R
-            overlayData.data[i+1] = 0;     // G
-            overlayData.data[i+2] = 68;    // B
-            overlayData.data[i+3] = 255;   // Alpha
+            // التوقيع المشتبه به (أحمر مع التحكم بالشفافية)
+            overlayData.data[idx] = 255;
+            overlayData.data[idx+1] = 0;
+            overlayData.data[idx+2] = 50;
+            overlayData.data[idx+3] = Math.round(255 * opacityFactor);
         } else {
-            // خلفية بيضاء شائعة
-            overlayData.data[i] = 255;
-            overlayData.data[i+1] = 255;
-            overlayData.data[i+2] = 255;
-            overlayData.data[i+3] = 255;
+            // خلفية بيضاء نقية 100%
+            overlayData.data[idx] = 255;
+            overlayData.data[idx+1] = 255;
+            overlayData.data[idx+2] = 255;
+            overlayData.data[idx+3] = 255;
         }
     }
 
@@ -198,7 +247,6 @@ function generateOverlay(img1, img2) {
     document.getElementById('overlayOutput').src = canvas.toDataURL('image/png');
 }
 
-// دالة رسم الجدول التفصيلي
 function renderGrid(img1, img2) {
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
@@ -229,7 +277,6 @@ function renderGrid(img1, img2) {
         return c;
     }
 
-    // 1. الدوائر العلوية
     const row1 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
@@ -243,7 +290,6 @@ function renderGrid(img1, img2) {
         cx.stroke();
     });
 
-    // 2. مربعات التركيز
     const row2 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
@@ -251,7 +297,6 @@ function renderGrid(img1, img2) {
         cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.38);
     });
 
-    // 3. التكبير الحقيقي المقتطع
     const row3 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
@@ -282,7 +327,6 @@ function renderGrid(img1, img2) {
         cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.38);
     });
 
-    // 4. أشكال بيضاوية
     const row4 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
