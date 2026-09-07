@@ -170,17 +170,20 @@ function renderGrid(img1, img2) {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
 
+        // إطار المربع الأصلي في الصورة اليسرى
         const cropX = w * 0.35;
         const cropY = h * 0.42;
         const cropW = w * 0.18;
         const cropH = h * 0.38;
         cx.strokeRect(cropX, cropY, cropW, cropH);
 
+        // إحداثيات النافذة المكبرة
         const zoomW = cropW * 1.8;
         const zoomH = cropH * 1.8;
         const zoomX = w * 0.58;
         const zoomY = h * 0.22;
 
+        // حساب نسبة الصورة الأصلية وتكبير المقطع
         const scaleX = img1.naturalWidth / cellW;
         const scaleY = img1.naturalHeight / cellH;
 
@@ -193,19 +196,24 @@ function renderGrid(img1, img2) {
         );
         cx.strokeRect(zoomX, zoomY, zoomW, zoomH);
 
+        // إطار المربع في الصورة اليمنى
         cx.strokeRect(w + g + (w * 0.12), h * 0.42, w * 0.18, h * 0.38);
     });
 
-    // 4. الصف الرابع: استبدال البيضاوي بمربعات مستطيلة متطابقة
+    // 4. الصف الرابع: أشكال بيضاوية دقيقة الانطباق
     const row4 = createPairCanvas((cx, w, h, g) => {
         cx.strokeStyle = "#e53e3e";
         cx.lineWidth = 3;
 
-        // مستطيل التركيز السفلي للصورة الأولى
-        cx.strokeRect(w * 0.04, h * 0.72, w * 0.75, h * 0.22);
+        // البيضاوي للصورة اليسرى (يرتكز على امتداد الخط)
+        cx.beginPath();
+        cx.ellipse(w * 0.43, h * 0.88, w * 0.40, h * 0.08, -0.08, 0, 2 * Math.PI);
+        cx.stroke();
 
-        // مستطيل التركيز السفلي للصورة الثانية
-        cx.strokeRect(w + g + (w * 0.10), h * 0.65, w * 0.75, h * 0.22);
+        // البيضاوي للصورة اليمنى (مرفوع ليرتكز على الامتداد السفلي بالتحديد)
+        cx.beginPath();
+        cx.ellipse(w + g + (w * 0.48), h * 0.70, w * 0.36, h * 0.12, -0.05, 0, 2 * Math.PI);
+        cx.stroke();
     });
 
     // دمج الصفوف
